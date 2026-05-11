@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Record Payment | ALMS{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="mb-1">Record Payment</h2>
+    <p class="text-muted mb-0">Mark booking #{{ booking.booking_id }} as paid.</p>
+  </div>
+  <a href="{{ url_for('admin_payments') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back to Payments
+  </a>
+</div>
+
+<div class="row g-3">
+  <!-- Booking summary -->
+  <div class="col-12 col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-receipt"></i> Booking Summary</h5>
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Booking ID</dt>
+          <dd class="col-7 fw-semibold">#{{ booking.booking_id }}</dd>
+
+          <dt class="col-5 text-muted">Customer</dt>
+          <dd class="col-7 fw-semibold">{{ booking.username }}</dd>
+
+          <dt class="col-5 text-muted">Email</dt>
+          <dd class="col-7">{{ booking.email }}</dd>
+
+          <dt class="col-5 text-muted">Room</dt>
+          <dd class="col-7">#{{ booking.room_number }} ({{ booking.room_type }})</dd>
+
+          <dt class="col-5 text-muted">Dates</dt>
+          <dd class="col-7">{{ booking.check_in }} → {{ booking.check_out }}</dd>
+
+          <dt class="col-5 text-muted">Rate</dt>
+          <dd class="col-7">KES {{ booking.price_per_night }}/night</dd>
+
+          {% if nights is not none %}
+          <dt class="col-5 text-muted">Nights</dt>
+          <dd class="col-7">{{ nights }}</dd>
+          {% endif %}
+
+          {% if suggested_amount is not none %}
+          <dt class="col-5 text-muted">Total Due</dt>
+          <dd class="col-7 fw-semibold text-success">KES {{ suggested_amount }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment form -->
+  <div class="col-12 col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-cash-coin"></i> Payment Details</h5>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Amount (KES) <span class="text-danger">*</span></label>
+              <input
+                type="number"
+                name="amount"
+                class="form-control"
+                min="0"
+                step="0.01"
+                required
+                value="{{ suggested_amount if suggested_amount is not none else '' }}"
+              >
+              <div class="form-text">
+                {% if nights is not none and suggested_amount is not none %}
+                  Auto-calculated: {{ nights }} night(s) × KES {{ booking.price_per_night }} =
+                  <strong>KES {{ suggested_amount }}</strong> (you can override)
+                {% else %}
+                  Enter the amount being paid.
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+              <select name="method" class="form-select" required>
+                <option value="">Select…</option>
+                <option value="Cash">Cash</option>
+                <option value="M-Pesa">M-Pesa</option>
+                <option value="Card">Card</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mt-4">
+            <a href="{{ url_for('admin_payments') }}" class="btn btn-outline-secondary">Cancel</a>
+            <button class="btn btn-primary">
+              <i class="bi bi-check2-circle"></i> Save Payment
+            </button>
+          </div>
+
+          <div class="form-text mt-2">
+            This will record the payment as <strong>paid</strong>, set <strong>paid_at</strong>
+            automatically, and confirm the booking.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

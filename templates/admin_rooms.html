@@ -1,0 +1,118 @@
+\{% extends "base.html" %}
+
+{% block title %}Manage Rooms | ALMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="mb-1">Rooms</h2>
+    <p class="text-muted mb-0">Add, review, and manage rooms.</p>
+  </div>
+
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin_rooms_new') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> New Room
+    </a>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if rooms %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Room #</th>
+              <th>Type</th>
+              <th>Capacity</th>
+              <th>Status</th>
+              <th class="text-end">Price/Night</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for r in rooms %}
+            <tr>
+              <td class="fw-semibold">{{ r.room_number }}</td>
+              <td>{{ r.room_type }}</td>
+              <td>{{ r.capacity }}</td>
+
+              <!-- STATUS -->
+              <td>
+                {% set s = (r.status or '')|lower %}
+                {% if s == 'available' %}
+                  <span class="badge text-bg-success">Available</span>
+                {% elif s == 'reserved' %}
+                  <span class="badge text-bg-warning text-dark">Reserved</span>
+                {% elif s == 'occupied' %}
+                  <span class="badge text-bg-danger">Occupied</span>
+                {% elif s == 'maintenance' %}
+                  <span class="badge text-bg-secondary">Maintenance</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ r.status }}</span>
+                {% endif %}
+              </td>
+
+              <td class="text-end">
+                KES {{ r.price_per_night }}
+              </td>
+
+              <!-- ACTIONS -->
+              <td class="text-end">
+                {% set s = (r.status or '')|lower %}
+
+                <!-- Make Available -->
+                {% if s in ['occupied','reserved'] %}
+                  <form method="POST"
+                        action="{{ url_for('admin_room_available', room_id=r.room_id) }}"
+                        class="d-inline">
+                    <button class="btn btn-sm btn-outline-success"
+                            onclick="return confirm('Mark room {{ r.room_number }} as available?')">
+                      <i class="bi bi-check-circle"></i>
+                    </button>
+                  </form>
+                {% endif %}
+
+                <!-- Mark Occupied -->
+                {% if s == 'available' %}
+                  <form method="POST"
+                        action="{{ url_for('admin_room_occupied', room_id=r.room_id) }}"
+                        class="d-inline">
+                    <button class="btn btn-sm btn-outline-warning"
+                            onclick="return confirm('Mark room {{ r.room_number }} as occupied?')">
+                      <i class="bi bi-person-fill"></i>
+                    </button>
+                  </form>
+                {% endif %}
+
+                <!-- Delete -->
+                <form method="POST"
+                      action="{{ url_for('admin_rooms_delete', room_id=r.room_id) }}"
+                      class="d-inline ms-1">
+                  <button class="btn btn-sm btn-outline-danger"
+                          onclick="return confirm('Delete room {{ r.room_number }}?')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+
+            </tr>
+            {% endfor %}
+          </tbody>
+
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-4">
+        <i class="bi bi-house-x fs-1 text-muted"></i>
+        <p class="mt-2 mb-0 text-muted">No rooms found.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

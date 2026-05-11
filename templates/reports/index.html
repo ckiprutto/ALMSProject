@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Reports | ALMS{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="mb-1"><i class="bi bi-bar-chart-line"></i> Reports</h2>
+    <p class="text-muted mb-0">Admin analytics — bookings, revenue and room occupancy.</p>
+  </div>
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-speedometer2"></i> Dashboard
+  </a>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-md-4">
+    <a href="{{ url_for('reports.bookings_report') }}" class="text-decoration-none">
+      <div class="card shadow-sm h-100 border-0" style="background:#1a1a1a;color:#f0ede6;">
+        <div class="card-body p-4">
+          <div class="fs-1 mb-3">📋</div>
+          <h5 class="card-title" style="color:#c9a84c;">Bookings Summary</h5>
+          <p class="card-text" style="color:#888;font-size:0.88rem;">
+            Overview of all reservations by status, room type, and daily trends within any date range.
+          </p>
+          <span class="badge mt-2" style="background:rgba(201,168,76,0.15);color:#c9a84c;">Bookings</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-12 col-md-4">
+    <a href="{{ url_for('reports.revenue_report') }}" class="text-decoration-none">
+      <div class="card shadow-sm h-100 border-0" style="background:#1a1a1a;color:#f0ede6;">
+        <div class="card-body p-4">
+          <div class="fs-1 mb-3">💰</div>
+          <h5 class="card-title" style="color:#c9a84c;">Revenue &amp; Payments</h5>
+          <p class="card-text" style="color:#888;font-size:0.88rem;">
+            Total earnings from confirmed stays, monthly breakdown, and revenue per room category.
+          </p>
+          <span class="badge mt-2" style="background:rgba(201,168,76,0.15);color:#c9a84c;">Finance</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-12 col-md-4">
+    <a href="{{ url_for('reports.occupancy_report') }}" class="text-decoration-none">
+      <div class="card shadow-sm h-100 border-0" style="background:#1a1a1a;color:#f0ede6;">
+        <div class="card-body p-4">
+          <div class="fs-1 mb-3">🏨</div>
+          <h5 class="card-title" style="color:#c9a84c;">Room Occupancy</h5>
+          <p class="card-text" style="color:#888;font-size:0.88rem;">
+            Occupancy rates per room and room type, nights sold, and current availability status.
+          </p>
+          <span class="badge mt-2" style="background:rgba(201,168,76,0.15);color:#c9a84c;">Rooms</span>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+{% endblock %}

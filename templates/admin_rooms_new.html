@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}New Room | ALMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="mb-1">Add New Room</h2>
+    <p class="text-muted mb-0">Create a new room in the system.</p>
+  </div>
+
+  <a href="{{ url_for('admin_rooms') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="POST">
+
+      <div class="row g-3">
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Room Number</label>
+          <input type="text" name="room_number" class="form-control" required>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Room Type</label>
+          <input type="text" name="room_type" class="form-control" required>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Capacity</label>
+          <input type="number" name="capacity" class="form-control" min="1" value="1" required>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Price Per Night (KES)</label>
+          <input type="number" name="price_per_night" class="form-control" min="0" step="0.01" required>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            <option value="available">Available</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+        </div>
+
+        <div class="col-12">
+          <hr>
+          <h5 class="mb-1"><i class="bi bi-geo-alt"></i> Room Location</h5>
+          <p class="text-muted mb-3">
+            Click on the map to select the room location. Latitude and longitude will fill automatically.
+          </p>
+        </div>
+
+        <div class="col-12">
+          <div id="adminRoomMap" style="height: 380px; border-radius: 12px;"></div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Latitude</label>
+          <input type="number" name="latitude" id="latitude" class="form-control" step="0.0000001" placeholder="-1.286389">
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Longitude</label>
+          <input type="number" name="longitude" id="longitude" class="form-control" step="0.0000001" placeholder="36.817223">
+        </div>
+
+        <div class="col-12 d-flex gap-2 flex-wrap">
+          <button type="button" class="btn btn-outline-primary btn-sm" id="btnUseMapSelection">
+            <i class="bi bi-cursor"></i> Use Selected Point
+          </button>
+
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btnLocateAdmin">
+            <i class="bi bi-crosshair"></i> Use My Current Location
+          </button>
+
+          <button type="button" class="btn btn-outline-danger btn-sm" id="btnClearLocation">
+            <i class="bi bi-x-circle"></i> Clear Location
+          </button>
+        </div>
+
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <a href="{{ url_for('admin_rooms') }}" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-primary">
+          <i class="bi bi-check2-circle"></i> Save Room
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script>
+  const defaultCenter = [-1.286389, 36.817223];
+  const map = L.map('adminRoomMap').setView(defaultCenter, 13);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const latInput = document.getElementById('latitude');
+  const lngInput = document.getElementById('longitude');
+  const btnLocateAdmin = document.getElementById('btnLocateAdmin');
+  const btnClearLocation = document.getElementById('btnClearLocation');
+  const btnUseMapSelection = document.getElementById('btnUseMapSelection');
+
+  let marker = null;
+  let selectedLatLng = null;
+
+  // Fix rendering issue (IMPORTANT)
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 200);
+
+  function setMarker(lat, lng, centerMap = true) {
+    selectedLatLng = [lat, lng];
+
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+    } else {
+      marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+      marker.on('dragend', function(e) {
+        const pos = e.target.getLatLng();
+        updateInputs(pos.lat, pos.lng);
+      });
+    }
+
+    updateInputs(lat, lng);
+
+    if (centerMap) {
+      map.setView([lat, lng], 15);
+    }
+
+    marker.bindPopup("Selected room location").openPopup();
+  }
+
+  function updateInputs(lat, lng) {
+    latInput.value = Number(lat).toFixed(7);
+    lngInput.value = Number(lng).toFixed(7);
+    selectedLatLng = [lat, lng];
+  }
+
+  // Click on map
+  map.on('click', function(e) {
+    setMarker(e.latlng.lat, e.latlng.lng);
+  });
+
+  // Use selected point button
+  btnUseMapSelection.addEventListener('click', function() {
+    if (!selectedLatLng) {
+      alert("Click on the map first to choose a location.");
+      return;
+    }
+    updateInputs(selectedLatLng[0], selectedLatLng[1]);
+  });
+
+  // Use current location
+  btnLocateAdmin.addEventListener('click', function() {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported in this browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setMarker(lat, lng);
+      },
+      function() {
+        alert("Could not get your location. Please allow location access.");
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+
+  // Clear location
+  btnClearLocation.addEventListener('click', function() {
+    if (marker) {
+      map.removeLayer(marker);
+      marker = null;
+    }
+    selectedLatLng = null;
+    latInput.value = '';
+    lngInput.value = '';
+  });
+
+  // Sync inputs → map
+  function updateMarkerFromInputs() {
+    const lat = parseFloat(latInput.value);
+    const lng = parseFloat(lngInput.value);
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setMarker(lat, lng, false);
+    }
+  }
+
+  latInput.addEventListener('change', updateMarkerFromInputs);
+  lngInput.addEventListener('change', updateMarkerFromInputs);
+
+  // OPTIONAL: Prevent saving without location
+  document.querySelector("form").addEventListener("submit", function(e) {
+    if (!latInput.value || !lngInput.value) {
+      e.preventDefault();
+      alert("Please select a room location on the map.");
+    }
+  });
+
+</script>
+{% endblock %}

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALMS — Occupancy Report</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #222;
+    --border: #2a2a2a; --accent: #c9a84c; --accent2: #e8c87a;
+    --text: #f0ede6; --muted: #888;
+    --occupied: #5cb85c; --available: #5bc0de; --maintenance: #e05c5c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; padding: 40px 32px; }
+  a { color: var(--accent); text-decoration: none; }
+
+  .topbar { display: flex; align-items: center; gap: 16px; margin-bottom: 36px; }
+  .back-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); padding: 7px 16px; border-radius: 8px; font-size: 0.85rem; }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+  h1 { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--accent); }
+
+  .filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; }
+  .filter-bar label { font-size: 0.82rem; color: var(--muted); }
+  .filter-bar input[type=date] { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 7px 12px; border-radius: 6px; font-size: 0.88rem; }
+  .filter-bar button { background: var(--accent); color: #000; font-weight: 600; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; }
+  .filter-bar button:hover { background: var(--accent2); }
+
+  /* Gauge cards */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px 20px; }
+  .stat-card .val { font-family: 'DM Serif Display', serif; font-size: 2.2rem; }
+  .stat-card .lbl { color: var(--muted); font-size: 0.78rem; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-card .pct { font-size: 0.85rem; margin-top: 8px; }
+  .progress { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-top: 10px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+
+  .chart-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 24px; }
+  .chart-section h3 { font-family: 'DM Serif Display', serif; font-size: 1.1rem; margin-bottom: 20px; color: var(--accent2); }
+
+  .type-row { display: flex; align-items: center; padding: 14px 0; border-top: 1px solid var(--border); gap: 14px; flex-wrap: wrap; }
+  .type-row:first-child { border-top: none; }
+  .type-name { width: 120px; font-size: 0.88rem; }
+  .type-meta { color: var(--muted); font-size: 0.78rem; }
+  .type-bar-bg { flex: 1; height: 10px; background: var(--border); border-radius: 5px; min-width: 80px; }
+  .type-bar-fill { height: 100%; border-radius: 5px; }
+  .type-pct { font-family: 'DM Serif Display', serif; color: var(--accent); font-size: 1rem; width: 50px; text-align: right; }
+
+  /* Room grid */
+  .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .room-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .room-card .rnum { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--accent); }
+  .room-card .rtype { color: var(--muted); font-size: 0.78rem; margin: 2px 0 8px; }
+  .room-card .rstats { display: flex; gap: 12px; font-size: 0.78rem; }
+  .room-card .rstats span { color: var(--muted); }
+  .room-card .rstats strong { color: var(--text); }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .dot-occupied    { background: var(--occupied); }
+  .dot-available   { background: var(--available); }
+  .dot-maintenance { background: var(--maintenance); }
+  .room-status { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .status-occupied    { color: var(--occupied); }
+  .status-available   { color: var(--available); }
+  .status-maintenance { color: var(--maintenance); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="{{ url_for('reports.reports_index') }}" class="back-btn">← Reports</a>
+  <h1>Room Occupancy</h1>
+</div>
+
+<form class="filter-bar" method="GET">
+  <label>From</label>
+  <input type="date" name="from_date" value="{{ from_date }}">
+  <label>To</label>
+  <input type="date" name="to_date" value="{{ to_date }}">
+  <button type="submit">Apply</button>
+  <span style="color:var(--muted);font-size:0.82rem;margin-left:auto;">{{ from_date }} → {{ to_date }} ({{ period_days }} days)</span>
+</form>
+
+<!-- Summary stat cards -->
+{% set occ_pct = ((currently_occupied / total_rooms) * 100) | int if total_rooms > 0 else 0 %}
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="val" style="color:var(--accent);">{{ total_rooms }}</div>
+    <div class="lbl">Total Rooms</div>
+  </div>
+  <div class="stat-card">
+    <div class="val" style="color:var(--occupied);">{{ currently_occupied }}</div>
+    <div class="lbl">Currently Occupied</div>
+    <div class="pct" style="color:var(--muted);">{{ occ_pct }}% occupancy right now</div>
+    <div class="progress"><div class="progress-fill" style="width:{{ occ_pct }}%;background:var(--occupied);"></div></div>
+  </div>
+  <div class="stat-card">
+    <div class="val" style="color:var(--available);">{{ total_rooms - currently_occupied }}</div>
+    <div class="lbl">Available Now</div>
+    <div class="pct" style="color:var(--muted);">{{ 100 - occ_pct }}% availability</div>
+    <div class="progress"><div class="progress-fill" style="width:{{ 100 - occ_pct }}%;background:var(--available);"></div></div>
+  </div>
+</div>
+
+<!-- Occupancy by room type -->
+{% if type_occupancy %}
+<div class="chart-section">
+  <h3>Occupancy Rate by Room Type</h3>
+  {% for t in type_occupancy %}
+  {% set max_possible = t.total_rooms * period_days %}
+  {% set occ_rate = ((t.nights_sold / max_possible) * 100) | int if max_possible > 0 else 0 %}
+  <div class="type-row">
+    <div>
+      <div class="type-name">{{ t.room_type }}</div>
+      <div class="type-meta">{{ t.total_rooms }} room(s) · {{ t.bookings }} booking(s) · {{ t.nights_sold }} nights sold</div>
+    </div>
+    <div class="type-bar-bg">
+      <div class="type-bar-fill" style="width:{{ occ_rate }}%;background:{% if occ_rate > 70 %}var(--occupied){% elif occ_rate > 40 %}var(--accent){% else %}var(--available){% endif %};"></div>
+    </div>
+    <div class="type-pct">{{ occ_rate }}%</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Individual room cards -->
+{% if room_stats %}
+<div class="chart-section">
+  <h3>Individual Rooms — Period Performance</h3>
+  <div class="room-grid">
+    {% for r in room_stats %}
+    {% set room_occ = ((r.total_nights / period_days) * 100) | int if period_days > 0 else 0 %}
+    <div class="room-card">
+      <div class="rnum">{{ r.room_number }}</div>
+      <div class="rtype">{{ r.room_type }} · KES {{ "{:,.0f}".format(r.price_per_night | float) }}/night</div>
+      <div style="margin-bottom:8px;">
+        <span class="status-dot dot-{% if r.status == 'occupied' %}occupied{% elif r.status == 'available' %}available{% else %}maintenance{% endif %}"></span>
+        <span class="room-status status-{% if r.status == 'occupied' %}occupied{% elif r.status == 'available' %}available{% else %}maintenance{% endif %}">{{ r.status }}</span>
+      </div>
+      <div class="rstats">
+        <div><span>Bookings </span><strong>{{ r.times_booked }}</strong></div>
+        <div><span>Nights </span><strong>{{ r.total_nights }}</strong></div>
+        <div><span>Occ. </span><strong>{{ [room_occ, 100] | min }}%</strong></div>
+      </div>
+      <div class="progress" style="margin-top:10px;">
+        <div class="progress-fill" style="width:{{ [room_occ, 100] | min }}%;"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+</body>
+</html>

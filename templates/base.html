@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ALMS{% endblock %}</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Leaflet CSS (ONLY ONCE) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    #chatToggleBtn {
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      z-index: 1080;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+
+    #chatWidget {
+      position: fixed;
+      bottom: 92px;
+      right: 22px;
+      width: 350px;
+      max-width: calc(100vw - 24px);
+      height: 480px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 1081;
+    }
+
+    #chatWidgetHeader {
+      background: #0d6efd;
+      color: #fff;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #chatMessages {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      background: #f8f9fa;
+    }
+
+    .chat-msg {
+      margin-bottom: 10px;
+      display: flex;
+    }
+
+    .chat-msg.user {
+      justify-content: flex-end;
+    }
+
+    .chat-bubble {
+      max-width: 82%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      white-space: pre-line;
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .chat-msg.bot .chat-bubble {
+      background: #e9ecef;
+      color: #212529;
+      border-top-left-radius: 6px;
+    }
+
+    .chat-msg.user .chat-bubble {
+      background: #0d6efd;
+      color: #fff;
+      border-top-right-radius: 6px;
+    }
+
+    #chatInputArea {
+      padding: 10px;
+      border-top: 1px solid #dee2e6;
+      background: #fff;
+    }
+
+    #chatInput {
+      resize: none;
+    }
+  </style>
+</head>
+
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-semibold" href="#">
+      <i class="bi bi-building"></i> ALMS
+    </a>
+
+    <div class="d-flex align-items-center gap-3">
+      {% if session.get('username') %}
+        <span class="text-white-50 small">
+          <i class="bi bi-person-circle"></i> {{ session['username'] }} ({{ session.get('role','') }})
+        </span>
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+          {{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+{% if session.get('user_id') %}
+<!-- Chat toggle button -->
+<button id="chatToggleBtn" class="btn btn-primary" type="button">
+  <i class="bi bi-chat-dots-fill fs-4"></i>
+</button>
+
+<!-- Chat widget -->
+<div id="chatWidget">
+  <div id="chatWidgetHeader">
+    <div>
+      <strong><i class="bi bi-robot"></i> ALMS Assistant</strong><br>
+      <small>Ask about rooms, booking, prices, and help</small>
+    </div>
+    <button class="btn btn-sm btn-light" id="chatCloseBtn" type="button">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div id="chatMessages">
+    <div class="chat-msg bot">
+      <div class="chat-bubble">
+        Hello {{ session.get('username', '') }} 👋
+
+        I can help you with:
+        - available rooms
+        - rooms under a budget
+        - booking steps
+        - cancelling a booking
+      </div>
+    </div>
+  </div>
+
+  <div id="chatInputArea">
+    <div class="input-group">
+      <textarea id="chatInput" class="form-control" rows="2"></textarea>
+      <button id="chatSendBtn" class="btn btn-primary" type="button">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Leaflet JS (ONLY ONCE) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+{% if session.get('user_id') %}
+<script>
+  const chatToggleBtn = document.getElementById("chatToggleBtn");
+  const chatWidget = document.getElementById("chatWidget");
+  const chatCloseBtn = document.getElementById("chatCloseBtn");
+  const chatMessages = document.getElementById("chatMessages");
+  const chatInput = document.getElementById("chatInput");
+  const chatSendBtn = document.getElementById("chatSendBtn");
+
+  function appendMessage(text, sender = "bot") {
+    const row = document.createElement("div");
+    row.className = `chat-msg ${sender}`;
+
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble";
+    bubble.textContent = text;
+
+    row.appendChild(bubble);
+    chatMessages.appendChild(row);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function toggleChat(show) {
+    chatWidget.style.display = show ? "flex" : "none";
+  }
+
+  async function sendChat() {
+    const message = chatInput.value.trim();
+    if (!message) return;
+
+    appendMessage(message, "user");
+    chatInput.value = "";
+
+    try {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await res.json();
+      appendMessage(data.reply || "No response from assistant.", "bot");
+    } catch {
+      appendMessage("Connection error. Try again.", "bot");
+    }
+  }
+
+  chatToggleBtn?.addEventListener("click", () => {
+    const isHidden = chatWidget.style.display === "none" || !chatWidget.style.display;
+    toggleChat(isHidden);
+  });
+
+  chatCloseBtn?.addEventListener("click", () => toggleChat(false));
+  chatSendBtn?.addEventListener("click", sendChat);
+
+  chatInput?.addEventListener("keydown", function(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendChat();
+    }
+  });
+</script>
+{% endif %}
+
+</body>
+</html>

@@ -1,0 +1,557 @@
+{% extends "base.html" %}
+{% block title %}Login | ALMS{% endblock %}
+{% block content %}
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+  .auth-wrap {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.10);
+    overflow: hidden;
+  }
+
+  /* Tab bar */
+  .auth-tabs {
+    display: flex;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .auth-tab {
+    flex: 1;
+    padding: 1rem;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.92rem;
+    color: #aaa;
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: all 0.25s;
+    border-bottom: 2px solid transparent;
+    letter-spacing: 0.04em;
+  }
+  .auth-tab.active {
+    color: #b8860b;
+    border-bottom-color: #b8860b;
+  }
+  .auth-tab:hover:not(.active) { color: #666; }
+
+  /* Body */
+  .auth-body {
+    padding: 2rem 2.2rem 2.2rem;
+  }
+
+  .auth-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.2rem;
+  }
+  .auth-logo span { color: #b8860b; }
+  .auth-subtitle {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    color: #999;
+    margin-bottom: 1.8rem;
+  }
+
+  /* Panels */
+  .auth-panel { display: none; }
+  .auth-panel.active { display: block; }
+
+  /* Fields */
+  .field-wrap {
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .field-wrap label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+  .field-wrap input {
+    width: 100%;
+    padding: 0.72rem 1rem;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.92rem;
+    color: #1a1a1a;
+    background: #fafafa;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .field-wrap input:focus {
+    border-color: #b8860b;
+    box-shadow: 0 0 0 3px rgba(184,134,11,0.10);
+    background: #fff;
+  }
+  .field-wrap input.is-invalid { border-color: #e05c5c; }
+  .field-wrap .invalid-msg {
+    font-size: 0.75rem;
+    color: #e05c5c;
+    margin-top: 0.3rem;
+    display: none;
+  }
+  .field-wrap input.is-invalid + .pw-toggle + .invalid-msg,
+  .field-wrap input.is-invalid + .invalid-msg { display: block; }
+
+  /* Password toggle */
+  .pw-wrap { position: relative; }
+  .pw-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #aaa;
+    padding: 0;
+    font-size: 1rem;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .pw-toggle:hover { color: #b8860b; }
+  .pw-wrap input { padding-right: 2.5rem; }
+
+  /* Forgot password */
+  .forgot-link {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    color: #b8860b;
+    text-decoration: none;
+    float: right;
+    margin-top: -0.6rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+  .forgot-link:hover { text-decoration: underline; }
+
+  /* Submit button */
+  .auth-btn {
+    width: 100%;
+    padding: 0.8rem;
+    background: #b8860b;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    margin-top: 0.5rem;
+  }
+  .auth-btn:hover { background: #9a7009; transform: translateY(-1px); }
+  .auth-btn:active { transform: translateY(0); }
+  .auth-btn.success-btn { background: #2e7d32; }
+  .auth-btn.success-btn:hover { background: #1b5e20; }
+
+  /* Divider */
+  .auth-divider {
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    color: #bbb;
+    margin: 1.2rem 0;
+    position: relative;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 42%;
+    height: 1px;
+    background: #f0f0f0;
+  }
+  .auth-divider::before { left: 0; }
+  .auth-divider::after { right: 0; }
+
+  /* Strength meter */
+  .strength-meter {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .strength-bar {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: #eee;
+    transition: background 0.3s;
+  }
+  .strength-label {
+    font-size: 0.72rem;
+    color: #aaa;
+    margin-top: 3px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Forgot password modal overlay */
+  .forgot-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .forgot-overlay.open { display: flex; }
+  .forgot-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .forgot-modal h5 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    margin-bottom: 0.4rem;
+  }
+  .forgot-modal p {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.83rem;
+    color: #888;
+    margin-bottom: 1.2rem;
+  }
+  .modal-close {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: none; border: none;
+    font-size: 1.2rem; color: #aaa; cursor: pointer;
+  }
+
+  /* Flash alerts */
+  .auth-alert {
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Footer tip */
+  .auth-tip {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    color: #bbb;
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+</style>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">
+        Sign In
+      </button>
+      <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">
+        Create Account
+      </button>
+    </div>
+
+    <div class="auth-body">
+
+      <!-- Logo -->
+      <div class="auth-logo">AL<span>M</span>S</div>
+      <div class="auth-subtitle">Accommodation & Lodging Management System</div>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert auth-alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- ===== LOGIN PANEL ===== -->
+      <div class="auth-panel active" id="panelLogin">
+        <form method="POST" action="{{ url_for('login') }}" id="loginForm" novalidate>
+
+          <div class="field-wrap">
+            <label>Username or Email</label>
+            <input name="identifier" id="loginIdentifier" type="text"
+                   placeholder="e.g. john or john@email.com"
+                   autocomplete="username" required>
+            <div class="invalid-msg">Please enter your username or email.</div>
+          </div>
+
+          <div class="field-wrap">
+            <label>Password</label>
+            <div class="pw-wrap">
+              <input name="password" id="loginPassword" type="password"
+                     placeholder="Your password"
+                     autocomplete="current-password" required>
+              <button type="button" class="pw-toggle" onclick="togglePw('loginPassword', this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="invalid-msg">Please enter your password.</div>
+          </div>
+
+          <!-- Forgot password link -->
+          <a href="#" class="forgot-link" onclick="openForgot(event)">
+            Forgot password?
+          </a>
+
+          <button type="submit" class="auth-btn" onclick="validateLogin(event)">
+            <i class="bi bi-box-arrow-in-right"></i> Sign In
+          </button>
+        </form>
+
+        <div class="auth-divider">or</div>
+
+        <button class="auth-btn success-btn" onclick="switchTab('signup')">
+          <i class="bi bi-person-plus"></i> Create New Account
+        </button>
+      </div>
+
+      <!-- ===== SIGNUP PANEL ===== -->
+      <div class="auth-panel" id="panelSignup">
+        <form method="POST" action="{{ url_for('register') }}" id="signupForm" novalidate>
+
+          <div class="field-wrap">
+            <label>Username</label>
+            <input name="username" id="regUsername" type="text"
+                   placeholder="Choose a username" required>
+            <div class="invalid-msg">Username is required.</div>
+          </div>
+
+          <div class="field-wrap">
+            <label>Email Address</label>
+            <input name="email" id="regEmail" type="email"
+                   placeholder="your@email.com" required>
+            <div class="invalid-msg">Please enter a valid email address.</div>
+          </div>
+
+          <div class="field-wrap">
+            <label>Password</label>
+            <div class="pw-wrap">
+              <input name="password" id="regPassword" type="password"
+                     placeholder="Min. 6 characters"
+                     autocomplete="new-password" required oninput="checkStrength(this.value)">
+              <button type="button" class="pw-toggle" onclick="togglePw('regPassword', this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <!-- Password strength meter -->
+            <div class="strength-meter">
+              <div class="strength-bar" id="sb1"></div>
+              <div class="strength-bar" id="sb2"></div>
+              <div class="strength-bar" id="sb3"></div>
+              <div class="strength-bar" id="sb4"></div>
+            </div>
+            <div class="strength-label" id="strengthLabel"></div>
+            <div class="invalid-msg">Password must be at least 6 characters.</div>
+          </div>
+
+          <div class="field-wrap">
+            <label>Confirm Password</label>
+            <div class="pw-wrap">
+              <input name="confirm_password" id="regConfirm" type="password"
+                     placeholder="Repeat your password"
+                     autocomplete="new-password" required>
+              <button type="button" class="pw-toggle" onclick="togglePw('regConfirm', this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="invalid-msg" id="confirmMsg">Passwords do not match.</div>
+          </div>
+
+          <button type="submit" class="auth-btn success-btn" onclick="validateSignup(event)">
+            <i class="bi bi-person-check"></i> Create Account
+          </button>
+        </form>
+
+        <div class="auth-divider">already have an account?</div>
+
+        <button class="auth-btn" onclick="switchTab('login')">
+          <i class="bi bi-box-arrow-in-right"></i> Sign In Instead
+        </button>
+      </div>
+
+      <div class="auth-tip">
+        <i class="bi bi-shield-lock"></i> Secured by ALMS &nbsp;·&nbsp; Contact admin if locked out
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== FORGOT PASSWORD MODAL ===== -->
+<div class="forgot-overlay" id="forgotOverlay" onclick="closeForgotOutside(event)">
+  <div class="forgot-modal" style="position:relative;">
+    <button class="modal-close" onclick="closeForgot()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+    <h5>Reset Password</h5>
+    <p>Enter your email address and we'll send you a reset link.</p>
+
+    <div id="forgotSuccess" style="display:none;">
+      <div class="alert alert-success auth-alert">
+        <i class="bi bi-check2-circle"></i>
+        If that email exists in our system, a reset link has been sent.
+      </div>
+      <button class="auth-btn" onclick="closeForgot()">Close</button>
+    </div>
+
+    <div id="forgotForm">
+      <form method="POST" action="{{ url_for('forgot_password') }}" id="fpForm">
+        <div class="field-wrap">
+          <label>Email Address</label>
+          <input type="email" name="email" id="fpEmail"
+                 class="form-control" placeholder="your@email.com" required>
+          <div class="invalid-msg" id="fpEmailMsg">Please enter a valid email.</div>
+        </div>
+        <button type="submit" class="auth-btn" onclick="validateForgot(event)">
+          <i class="bi bi-send"></i> Send Reset Link
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Tab switching ──────────────────────────────────────────
+  function switchTab(tab) {
+    document.getElementById('panelLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('panelSignup').classList.toggle('active', tab === 'signup');
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+  }
+
+  // Auto-open signup tab if register flash message present
+  {% if request.endpoint == 'register' or (get_flashed_messages() and 'already exists' in (get_flashed_messages()|join)) %}
+    switchTab('signup');
+  {% endif %}
+
+  // ── Show/hide password ─────────────────────────────────────
+  function togglePw(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon  = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'bi bi-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'bi bi-eye';
+    }
+  }
+
+  // ── Password strength ──────────────────────────────────────
+  function checkStrength(pw) {
+    let score = 0;
+    if (pw.length >= 6)  score++;
+    if (pw.length >= 10) score++;
+    if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score++;
+
+    const colors  = ['#e05c5c','#e0a050','#c9a84c','#5cb85c'];
+    const labels  = ['Weak','Fair','Good','Strong'];
+    const bars    = ['sb1','sb2','sb3','sb4'];
+
+    bars.forEach((id, i) => {
+      document.getElementById(id).style.background = i < score ? colors[score-1] : '#eee';
+    });
+    const lbl = document.getElementById('strengthLabel');
+    lbl.textContent = pw.length ? labels[score-1] || '' : '';
+    lbl.style.color = score > 0 ? colors[score-1] : '#aaa';
+  }
+
+  // ── Login validation ───────────────────────────────────────
+  function validateLogin(e) {
+    let ok = true;
+    const id = document.getElementById('loginIdentifier');
+    const pw = document.getElementById('loginPassword');
+    if (!id.value.trim()) { id.classList.add('is-invalid'); ok = false; }
+    else id.classList.remove('is-invalid');
+    if (!pw.value)         { pw.classList.add('is-invalid'); ok = false; }
+    else pw.classList.remove('is-invalid');
+    if (!ok) e.preventDefault();
+  }
+
+  // ── Signup validation ──────────────────────────────────────
+  function validateSignup(e) {
+    let ok = true;
+    const u  = document.getElementById('regUsername');
+    const em = document.getElementById('regEmail');
+    const pw = document.getElementById('regPassword');
+    const c  = document.getElementById('regConfirm');
+
+    [u, em, pw, c].forEach(f => f.classList.remove('is-invalid'));
+
+    if (!u.value.trim())               { u.classList.add('is-invalid');  ok = false; }
+    if (!em.value || !em.value.includes('@')) { em.classList.add('is-invalid'); ok = false; }
+    if (pw.value.length < 6)           { pw.classList.add('is-invalid'); ok = false; }
+    if (c.value !== pw.value) {
+      c.classList.add('is-invalid');
+      document.getElementById('confirmMsg').textContent = 'Passwords do not match.';
+      ok = false;
+    }
+    if (!ok) e.preventDefault();
+  }
+
+  // ── Forgot password modal ──────────────────────────────────
+  function openForgot(e) {
+    e.preventDefault();
+    document.getElementById('forgotOverlay').classList.add('open');
+  }
+  function closeForgot() {
+    document.getElementById('forgotOverlay').classList.remove('open');
+  }
+  function closeForgotOutside(e) {
+    if (e.target === document.getElementById('forgotOverlay')) closeForgot();
+  }
+  function validateForgot(e) {
+    const em = document.getElementById('fpEmail');
+    if (!em.value || !em.value.includes('@')) {
+      e.preventDefault();
+      em.classList.add('is-invalid');
+      document.getElementById('fpEmailMsg').style.display = 'block';
+      return;
+    }
+    // If forgot_password route returns TODO, simulate success client-side
+    // Remove this block once you implement the actual route
+    e.preventDefault();
+    document.getElementById('forgotForm').style.display = 'none';
+    document.getElementById('forgotSuccess').style.display = 'block';
+  }
+</script>
+
+{% endblock %}

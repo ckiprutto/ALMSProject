@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Available Rooms | ALMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h2 class="mb-1"><i class="bi bi-door-open"></i> Available Rooms</h2>
+    <p class="text-muted mb-0">Pick a room and submit your booking.</p>
+  </div>
+
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('customer_dashboard') }}">
+    <i class="bi bi-arrow-left"></i> Dashboard
+  </a>
+</div>
+
+<!-- MAP CARD -->
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+      <div>
+        <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Rooms Map</h5>
+        <small class="text-muted">Only rooms with coordinates will appear on the map.</small>
+      </div>
+      <button class="btn btn-outline-secondary btn-sm" type="button" id="btnLocateMe">
+        <i class="bi bi-crosshair"></i> Center on me
+      </button>
+    </div>
+
+    <div id="roomsMap" style="height: 360px; border-radius: 12px;"></div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Room</th>
+            <th>Type</th>
+            <th>Capacity</th>
+            <th>Price/Night</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% if rooms %}
+            {% for room in rooms %}
+            <tr>
+              <td class="fw-semibold">#{{ room.room_number }}</td>
+              <td>{{ room.room_type }}</td>
+              <td>{{ room.capacity }}</td>
+              <td>KES {{ room.price_per_night }}</td>
+              <td class="text-end">
+                <a class="btn btn-primary btn-sm"
+                   href="{{ url_for('customer_book_room', room_id=room.room_id) }}">
+                  <i class="bi bi-calendar-plus"></i> Book
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                <i class="bi bi-info-circle"></i> No available rooms at the moment.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Leaflet (no key required) -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  // Rooms data from Flask/Jinja
+  const ROOMS = [
+    {% for room in rooms %}
+      {
+        id: {{ room.room_id }},
+        number: "{{ room.room_number }}",
+        type: "{{ room.room_type|e }}",
+        price: "{{ room.price_per_night }}",
+        capacity: "{{ room.capacity }}",
+        lat: {{ room.latitude if room.latitude is not none else "null" }},
+        lng: {{ room.longitude if room.longitude is not none else "null" }},
+        bookUrl: "{{ url_for('customer_book_room', room_id=room.room_id) }}"
+      }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  // Default center: Nairobi-ish (change if you want)
+  const defaultCenter = [-1.286389, 36.817223];
+  const map = L.map('roomsMap').setView(defaultCenter, 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const bounds = [];
+  ROOMS.forEach(r => {
+    if (r.lat !== null && r.lng !== null) {
+      const m = L.marker([r.lat, r.lng]).addTo(map);
+      m.bindPopup(`
+        <div style="min-width: 180px;">
+          <div><b>Room #${r.number}</b></div>
+          <div>Type: ${r.type}</div>
+          <div>Capacity: ${r.capacity}</div>
+          <div>Price: KES ${r.price}</div>
+          <div class="mt-2">
+            <a class="btn btn-sm btn-primary" href="${r.bookUrl}">
+              Book
+            </a>
+          </div>
+        </div>
+      `);
+      bounds.push([r.lat, r.lng]);
+    }
+  });
+
+  if (bounds.length > 0) {
+    map.fitBounds(bounds, { padding: [20, 20] });
+  }
+
+  // Center on user location (browser)
+  document.getElementById("btnLocateMe").addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported in this browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        map.setView([lat, lng], 14);
+        L.circleMarker([lat, lng], { radius: 8 }).addTo(map).bindPopup("You are here").openPopup();
+      },
+      () => alert("Could not get your location. Please allow location access."),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+</script>
+{% endblock %}

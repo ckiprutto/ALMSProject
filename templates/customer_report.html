@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}My Booking History | ALMS{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="mb-1"><i class="bi bi-clock-history"></i> My Booking History</h2>
+    <p class="text-muted mb-0">A full summary of all your reservations and payments.</p>
+  </div>
+  <a href="{{ url_for('customer_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-speedometer2"></i> Dashboard
+  </a>
+</div>
+
+<!-- Summary stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center">
+      <div class="card-body py-3">
+        <div class="fs-3 fw-bold text-primary">{{ summary.total }}</div>
+        <div class="text-muted small">Total Bookings</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center">
+      <div class="card-body py-3">
+        <div class="fs-3 fw-bold text-success">{{ summary.confirmed }}</div>
+        <div class="text-muted small">Confirmed</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center">
+      <div class="card-body py-3">
+        <div class="fs-3 fw-bold text-warning">{{ summary.pending }}</div>
+        <div class="text-muted small">Pending</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center">
+      <div class="card-body py-3">
+        <div class="fs-3 fw-bold text-info">KES {{ "{:,.0f}".format(summary.total_spent) }}</div>
+        <div class="text-muted small">Total Spent</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Full booking table -->
+<div class="card shadow-sm">
+  <div class="card-header bg-white">
+    <h5 class="mb-0">All Bookings</h5>
+  </div>
+  <div class="card-body p-0">
+    {% if bookings %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Room</th>
+            <th>Type</th>
+            <th>Check-in</th>
+            <th>Check-out</th>
+            <th>Nights</th>
+            <th class="text-end">Amount (KES)</th>
+            <th>Booking Status</th>
+            <th>Payment</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bookings %}
+          {% set s = (b.status or '')|lower %}
+          {% set pay_s = (b.payment_status or '')|lower %}
+          {% set nights = [(b.check_out - b.check_in).days, 1] | max if b.check_in and b.check_out else 1 %}
+          {% set total = nights * (b.price_per_night or 0) %}
+          <tr>
+            <td class="fw-semibold">{{ b.booking_id }}</td>
+            <td>#{{ b.room_number }}</td>
+            <td>{{ b.room_type }}</td>
+            <td>{{ b.check_in }}</td>
+            <td>{{ b.check_out }}</td>
+            <td>{{ nights }}</td>
+            <td class="text-end fw-semibold">{{ "{:,.0f}".format(total) }}</td>
+            <td>
+              {% if s == 'confirmed' %}
+                <span class="badge text-bg-success">Confirmed</span>
+              {% elif s == 'pending' %}
+                <span class="badge text-bg-warning text-dark">Pending</span>
+              {% elif s == 'cancelled' %}
+                <span class="badge text-bg-danger">Cancelled</span>
+              {% elif s == 'checked_out' %}
+                <span class="badge text-bg-primary">Checked Out</span>
+              {% else %}
+                <span class="badge text-bg-secondary">{{ b.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if pay_s == 'paid' %}
+                <span class="badge text-bg-success"><i class="bi bi-check2-circle"></i> Paid</span>
+                {% if b.payment_method %}
+                  <div class="text-muted small">{{ b.payment_method|upper }}</div>
+                {% endif %}
+              {% elif pay_s == 'initiated' %}
+                <span class="badge text-bg-info text-dark">Initiated</span>
+              {% elif pay_s == 'failed' %}
+                <span class="badge text-bg-danger">Failed</span>
+              {% else %}
+                <span class="badge text-bg-secondary">Unpaid</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-calendar-x fs-1 text-muted"></i>
+      <p class="mt-2 text-muted">No bookings yet. Browse available rooms to get started.</p>
+      <a href="{{ url_for('customer_rooms') }}" class="btn btn-primary mt-2">Browse Rooms</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

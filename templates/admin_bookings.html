@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Bookings | ALMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="mb-1">Bookings</h2>
+    <p class="text-muted mb-0">Cancel or checkout reservations. Confirmation is automatic after payment.</p>
+  </div>
+
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-speedometer2"></i> Dashboard
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if bookings %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Customer</th>
+              <th>Room</th>
+              <th>Type</th>
+              <th>Check-in</th>
+              <th>Check-out</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for b in bookings %}
+            {% set s = (b.status or '')|lower %}
+            {% set pay_s = (b.payment_status or '')|lower %}
+
+            <tr>
+              <td class="fw-semibold">{{ b.booking_id }}</td>
+
+              <td>
+                <div class="fw-semibold">{{ b.username }}</div>
+                <div class="text-muted small">{{ b.email }}</div>
+              </td>
+
+              <td>{{ b.room_number }}</td>
+              <td>{{ b.room_type }}</td>
+              <td>{{ b.check_in }}</td>
+              <td>{{ b.check_out }}</td>
+
+              <td>
+                {% if s == 'confirmed' %}
+                  <span class="badge text-bg-success">{{ b.status }}</span>
+                {% elif s == 'pending' %}
+                  <span class="badge text-bg-warning text-dark">{{ b.status }}</span>
+                {% elif s == 'cancelled' %}
+                  <span class="badge text-bg-danger">{{ b.status }}</span>
+                {% elif s == 'completed' %}
+                  <span class="badge text-bg-primary">{{ b.status }}</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ b.status }}</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if pay_s == 'paid' %}
+                  <span class="badge text-bg-success">
+                    <i class="bi bi-check2-circle"></i> Paid
+                  </span>
+                  <div class="text-muted small">
+                    {{ (b.payment_method or '')|upper }}
+                    {% if b.payment_paid_at %} • {{ b.payment_paid_at }}{% endif %}
+                  </div>
+                {% elif pay_s == 'initiated' %}
+                  <span class="badge text-bg-info text-dark">
+                    <i class="bi bi-hourglass-split"></i> Initiated
+                  </span>
+                  <div class="text-muted small">Awaiting completion</div>
+                {% elif pay_s == 'failed' %}
+                  <span class="badge text-bg-danger">
+                    <i class="bi bi-x-circle"></i> Failed
+                  </span>
+                  <div class="text-muted small">Retry required</div>
+                {% else %}
+                  <span class="badge text-bg-secondary">Unpaid</span>
+                {% endif %}
+              </td>
+
+              <td class="text-end">
+                {# Confirm: only pending AND paid (safety net). Ideally payment already auto-confirmed. #}
+                {% if s == 'pending' and pay_s == 'paid' %}
+                  <form method="POST"
+                        action="{{ url_for('admin_confirm_booking', booking_id=b.booking_id) }}"
+                        class="d-inline">
+                    <button class="btn btn-sm btn-outline-success"
+                            onclick="return confirm('Confirm booking #{{ b.booking_id }}?')">
+                      <i class="bi bi-check2"></i> Confirm
+                    </button>
+                  </form>
+                {% elif s == 'pending' and pay_s != 'paid' %}
+                  <span class="badge text-bg-light border text-dark me-1">
+                    Awaiting payment
+                  </span>
+                {% endif %}
+
+                {# Checkout: only confirmed #}
+                {% if s == 'confirmed' %}
+                  <form method="POST"
+                        action="{{ url_for('admin_checkout_booking', booking_id=b.booking_id) }}"
+                        class="d-inline ms-1">
+                    <button class="btn btn-sm btn-outline-primary"
+                            onclick="return confirm('Checkout booking #{{ b.booking_id }} and free the room?')">
+                      <i class="bi bi-box-arrow-right"></i> Checkout
+                    </button>
+                  </form>
+                {% endif %}
+
+                {# Cancel: allow for pending/confirmed only (not cancelled/completed) #}
+                {% if s not in ['cancelled','completed'] %}
+                  <form method="POST"
+                        action="{{ url_for('admin_cancel_booking', booking_id=b.booking_id) }}"
+                        class="d-inline ms-1">
+                    <button class="btn btn-sm btn-outline-danger"
+                            onclick="return confirm('Cancel booking #{{ b.booking_id }}?')">
+                      <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="text-muted ms-2">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-4">
+        <i class="bi bi-journal-x fs-1 text-muted"></i>
+        <p class="mt-2 mb-0 text-muted">No bookings found.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+
